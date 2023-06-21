@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './App.scss';
 
-// import usersFromServer from './api/users';
-// import categoriesFromServer from './api/categories';
-// import productsFromServer from './api/products';
+import usersFromServer from './api/users';
+import categoriesFromServer from './api/categories';
+import productsFromServer from './api/products';
+import classNames from 'classnames';
 
 // const products = productsFromServer.map((product) => {
 //   const category = null; // find by product.categoryId
@@ -12,7 +13,50 @@ import './App.scss';
 //   return null;
 // });
 
-export const App = () => (
+export const App = () => {
+console.log(
+usersFromServer,
+categoriesFromServer,
+productsFromServer,
+)
+ const [activeUser, setActiveUser] = useState('All');
+ const [query, setQuery] = useState('');
+ const [categories, setCategories] = useState([]);
+ console.log(query)
+
+ const resetAllFilters = () => {
+  setCategories([]);
+  setQuery('');
+  setActiveUser('All');
+ };
+
+ const products = productsFromServer.map((product) => {
+  const category = categoriesFromServer.find((category) => category.id === product.categoryId);
+
+  const user = usersFromServer.find(user => user.id === category.ownerId);
+
+  return {
+    id: product.id,
+    name: product.name,
+    category: category.title,
+    icon: category.icon,
+    userName: user.name,
+    sex: user.sex,
+  };
+ });
+
+ const normalizedQuery = query.toLowerCase().trim();
+
+ const filteredProducts = products.filter(product => {
+
+  return activeUser === 'All' ? true : product.userName === activeUser
+    && product.name.toLowerCase().includes(normalizedQuery)
+    && !categories.length ? true : categories.includes(product.category);
+ });
+
+console.log(filteredProducts, normalizedQuery)
+
+  return (
   <div className="section">
     <div className="container">
       <h1 className="title">Product Categories</h1>
@@ -25,31 +69,28 @@ export const App = () => (
             <a
               data-cy="FilterAllUsers"
               href="#/"
+              className={classNames({
+                'is-active': activeUser === 'All',
+              })}
+              onClick={() => setActiveUser('All')}
             >
               All
             </a>
 
-            <a
-              data-cy="FilterUser"
-              href="#/"
-            >
-              User 1
-            </a>
 
-            <a
-              data-cy="FilterUser"
-              href="#/"
-              className="is-active"
-            >
-              User 2
-            </a>
-
-            <a
-              data-cy="FilterUser"
-              href="#/"
-            >
-              User 3
-            </a>
+    {usersFromServer.map(user => (
+        <a
+        key={user.id}
+        data-cy="FilterUser"
+        href="#/"
+        className={classNames({
+          'is-active': activeUser === user.name,
+        })}
+        onClick={() => setActiveUser(user.name)}
+      >
+        {user.name}
+      </a>
+    ))}
           </p>
 
           <div className="panel-block">
@@ -59,7 +100,8 @@ export const App = () => (
                 type="text"
                 className="input"
                 placeholder="Search"
-                value="qwe"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
               />
 
               <span className="icon is-left">
@@ -82,40 +124,28 @@ export const App = () => (
               href="#/"
               data-cy="AllCategories"
               className="button is-success mr-6 is-outlined"
+              onClick={() => setCategories([])}
             >
               All
             </a>
-
-            <a
+            {categoriesFromServer.map((category) => (
+              <a
+              key={category.id}
               data-cy="Category"
-              className="button mr-2 my-1 is-info"
+              onClick={() => setCategories(prev => [...prev, category.title])}
+              className={classNames(
+                'button',
+                'mr-2',
+                'my-1',
+                {
+                  'is-info': categories.includes(category.title),
+                }
+              )}
               href="#/"
             >
-              Category 1
+              {category.title}
             </a>
-
-            <a
-              data-cy="Category"
-              className="button mr-2 my-1"
-              href="#/"
-            >
-              Category 2
-            </a>
-
-            <a
-              data-cy="Category"
-              className="button mr-2 my-1 is-info"
-              href="#/"
-            >
-              Category 3
-            </a>
-            <a
-              data-cy="Category"
-              className="button mr-2 my-1"
-              href="#/"
-            >
-              Category 4
-            </a>
+            ))}
           </div>
 
           <div className="panel-block">
@@ -123,6 +153,7 @@ export const App = () => (
               data-cy="ResetAllButton"
               href="#/"
               className="button is-link is-outlined is-fullwidth"
+              onClick={resetAllFilters}
             >
               Reset all filters
             </a>
@@ -244,4 +275,5 @@ export const App = () => (
       </div>
     </div>
   </div>
-);
+)
+}
