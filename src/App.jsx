@@ -6,13 +6,6 @@ import categoriesFromServer from './api/categories';
 import productsFromServer from './api/products';
 import classNames from 'classnames';
 
-// const products = productsFromServer.map((product) => {
-//   const category = null; // find by product.categoryId
-//   const user = null; // find by category.ownerId
-
-//   return null;
-// });
-
 export const App = () => {
 console.log(
 usersFromServer,
@@ -22,7 +15,6 @@ productsFromServer,
  const [activeUser, setActiveUser] = useState('All');
  const [query, setQuery] = useState('');
  const [categories, setCategories] = useState([]);
- console.log(query)
 
  const resetAllFilters = () => {
   setCategories([]);
@@ -30,7 +22,7 @@ productsFromServer,
   setActiveUser('All');
  };
 
- const products = productsFromServer.map((product) => {
+  const products = productsFromServer.map((product) => {
   const category = categoriesFromServer.find((category) => category.id === product.categoryId);
 
   const user = usersFromServer.find(user => user.id === category.ownerId);
@@ -45,13 +37,25 @@ productsFromServer,
   };
  });
 
+  const handleCategorySelect = (category) => {
+    if (categories.includes(category)) {
+      setCategories(prev => prev.filter(c => c !== category))
+    } else {
+      setCategories(prev => [...prev, category]);
+    }
+  }
+
  const normalizedQuery = query.toLowerCase().trim();
 
  const filteredProducts = products.filter(product => {
 
-  return activeUser === 'All' ? true : product.userName === activeUser
-    && product.name.toLowerCase().includes(normalizedQuery)
-    && !categories.length ? true : categories.includes(product.category);
+  const isUser = activeUser === 'All' || product.userName === activeUser;
+
+  const isName = product.name.toLowerCase().includes(normalizedQuery);
+
+  const isCategory = categories.length === 0  ||categories.includes(product.category);
+
+  return isUser && isName && isCategory;
  });
 
 console.log(filteredProducts, normalizedQuery)
@@ -110,11 +114,14 @@ console.log(filteredProducts, normalizedQuery)
 
               <span className="icon is-right">
                 {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
-                <button
+                {query && (
+                  <button
                   data-cy="ClearButton"
                   type="button"
                   className="delete"
+                  onClick={() => setQuery('')}
                 />
+                )}
               </span>
             </p>
           </div>
@@ -123,7 +130,14 @@ console.log(filteredProducts, normalizedQuery)
             <a
               href="#/"
               data-cy="AllCategories"
-              className="button is-success mr-6 is-outlined"
+              className={classNames(
+                'button',
+                'is-success',
+                'mr-6',
+                {
+                  'is-outlined': categories.length,
+                }
+              )}
               onClick={() => setCategories([])}
             >
               All
@@ -132,7 +146,7 @@ console.log(filteredProducts, normalizedQuery)
               <a
               key={category.id}
               data-cy="Category"
-              onClick={() => setCategories(prev => [...prev, category.title])}
+              onClick={() => handleCategorySelect(category.title)}
               className={classNames(
                 'button',
                 'mr-2',
@@ -162,11 +176,13 @@ console.log(filteredProducts, normalizedQuery)
       </div>
 
       <div className="box table-container">
-        <p data-cy="NoMatchingMessage">
-          No products matching selected criteria
-        </p>
-
-        <table
+        {filteredProducts.length === 0
+          ? (
+            <p data-cy="NoMatchingMessage">
+            No products matching selected criteria
+          </p>
+          ) : (
+            <table
           data-cy="ProductTable"
           className="table is-striped is-narrow is-fullwidth"
         >
@@ -223,55 +239,35 @@ console.log(filteredProducts, normalizedQuery)
           </thead>
 
           <tbody>
-            <tr data-cy="Product">
-              <td className="has-text-weight-bold" data-cy="ProductId">
-                1
-              </td>
+            {filteredProducts.map(product => (
+               <tr data-cy="Product">
+               <td className="has-text-weight-bold" data-cy="ProductId">
+                 {product.id}
+               </td>
 
-              <td data-cy="ProductName">Milk</td>
-              <td data-cy="ProductCategory">🍺 - Drinks</td>
+               <td data-cy="ProductName">{product.name}</td>
+               <td data-cy="ProductCategory">
+                  {product.icon}
+                  {' - '}
+                  {product.category}
+                </td>
 
-              <td
-                data-cy="ProductUser"
-                className="has-text-link"
-              >
-                Max
-              </td>
-            </tr>
-
-            <tr data-cy="Product">
-              <td className="has-text-weight-bold" data-cy="ProductId">
-                2
-              </td>
-
-              <td data-cy="ProductName">Bread</td>
-              <td data-cy="ProductCategory">🍞 - Grocery</td>
-
-              <td
-                data-cy="ProductUser"
-                className="has-text-danger"
-              >
-                Anna
-              </td>
-            </tr>
-
-            <tr data-cy="Product">
-              <td className="has-text-weight-bold" data-cy="ProductId">
-                3
-              </td>
-
-              <td data-cy="ProductName">iPhone</td>
-              <td data-cy="ProductCategory">💻 - Electronics</td>
-
-              <td
-                data-cy="ProductUser"
-                className="has-text-link"
-              >
-                Roma
-              </td>
-            </tr>
+               <td
+                 data-cy="ProductUser"
+                 className={classNames(
+                  {
+                    'has-text-link': product.sex === 'm',
+                    'has-text-danger': product.sex === 'f',
+                  })}
+               >
+                 {product.userName}
+               </td>
+             </tr>
+            ))}
           </tbody>
         </table>
+          )
+        }
       </div>
     </div>
   </div>
